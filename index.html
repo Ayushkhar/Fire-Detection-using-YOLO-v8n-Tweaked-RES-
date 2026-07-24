@@ -855,6 +855,109 @@
             flex-shrink: 0;
         }
 
+        /* ===== LIVE NEURAL PROCESSING LOADER STYLES ===== */
+        .loader-pulse-ring {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #E84020;
+            box-shadow: 0 0 0 0 rgba(232, 64, 32, 0.7);
+            animation: pulse-ring 1.5s infinite;
+        }
+        @keyframes pulse-ring {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(232, 64, 32, 0.7); }
+            70% { transform: scale(1.15); box-shadow: 0 0 0 14px rgba(232, 64, 32, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(232, 64, 32, 0); }
+        }
+
+        .pipeline-steps-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 12px;
+        }
+        @media (max-width: 900px) {
+            .pipeline-steps-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+
+        .pipe-step-card {
+            background: rgba(17, 24, 48, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.07);
+            border-radius: 10px;
+            padding: 14px 16px;
+            transition: all 0.3s ease;
+        }
+        .pipe-step-card.active {
+            border-color: #E84020;
+            background: rgba(232, 64, 32, 0.12);
+            box-shadow: 0 4px 20px rgba(232, 64, 32, 0.25);
+            transform: translateY(-2px);
+        }
+        .pipe-step-card.done {
+            border-color: rgba(0, 209, 108, 0.4);
+            background: rgba(0, 209, 108, 0.08);
+        }
+        .pipe-step-card.done .pipe-step-status {
+            color: #00D16C;
+        }
+
+        .pipe-step-num {
+            font-size: 11px;
+            font-weight: 800;
+            color: #8390AA;
+            font-family: 'JetBrains Mono', monospace;
+        }
+        .pipe-step-title {
+            font-size: 13px;
+            font-weight: 700;
+            color: #E8ECF8;
+            margin-top: 4px;
+        }
+        .pipe-step-status {
+            font-size: 11px;
+            color: #8390AA;
+            margin-top: 6px;
+            font-weight: 600;
+        }
+
+        .neural-flow-nodes {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            overflow-x: auto;
+            padding-bottom: 8px;
+        }
+
+        .flow-node {
+            padding: 10px 14px;
+            background: rgba(13, 16, 34, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 600;
+            white-space: nowrap;
+            color: #8390AA;
+            transition: all 0.3s ease;
+        }
+
+        .flow-node.active {
+            border-color: #F5A623;
+            color: #FFF;
+            background: linear-gradient(135deg, rgba(232, 64, 32, 0.3), rgba(245, 166, 35, 0.3));
+            box-shadow: 0 0 16px rgba(245, 166, 35, 0.4);
+            transform: scale(1.05);
+        }
+        .flow-node.done {
+            border-color: rgba(0, 209, 108, 0.4);
+            color: #E8ECF8;
+            background: rgba(0, 209, 108, 0.1);
+        }
+
+        .flow-arrow {
+            color: #8390AA;
+            font-size: 14px;
+            flex-shrink: 0;
+        }
+
         @media (max-width: 1024px) {
             .tech-stages {
                 grid-template-columns: 1fr;
@@ -1345,6 +1448,89 @@
                     <button class="btn-browse">Browse Files</button>
                     <input type="file" class="upload-input" id="imageInput" accept="image/*">
                 </div>
+
+                <!-- LIVE NEURAL PIPELINE ANIMATION VIEWER -->
+                <div id="neuralLoader" style="display: none; padding: 36px; background: rgba(13, 16, 34, 0.85); border: 1px solid rgba(232, 64, 32, 0.35); border-radius: 16px; margin-top: 24px; position: relative; overflow: hidden; backdrop-filter: blur(14px); box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 16px;">
+                        <div style="display: flex; align-items: center; gap: 14px;">
+                            <div class="loader-pulse-ring"></div>
+                            <div>
+                                <h4 style="font-size: 18px; font-weight: 800; color: #E8ECF8; letter-spacing: -0.5px;">Live Multi-Stage Neural Forward Pass</h4>
+                                <p id="neuralCurrentStageText" style="font-size: 13px; color: #F5A623; margin-top: 2px; font-family: 'JetBrains Mono', monospace;">Initializing Tensor Stream...</p>
+                            </div>
+                        </div>
+                        <div style="text-align: right;">
+                            <span id="neuralPctText" style="font-size: 32px; font-weight: 900; color: #E84020; font-family: 'JetBrains Mono', monospace;">0%</span>
+                            <div style="font-size: 11px; color: #8390AA; text-transform: uppercase; letter-spacing: 1px;">Pipeline Stage</div>
+                        </div>
+                    </div>
+
+                    <!-- Progress Bar -->
+                    <div style="width: 100%; height: 6px; background: rgba(255, 255, 255, 0.08); border-radius: 99px; overflow: hidden; margin-bottom: 28px;">
+                        <div id="neuralProgressBar" style="width: 0%; height: 100%; background: linear-gradient(90deg, #E84020, #F5A623, #00D16C); transition: width 0.25s ease; border-radius: 99px; box-shadow: 0 0 16px rgba(232, 64, 32, 0.6);"></div>
+                    </div>
+
+                    <!-- Live Multi-Stage Cards -->
+                    <div class="pipeline-steps-grid">
+                        <div class="pipe-step-card" id="pipeStep1">
+                            <div class="pipe-step-num">STAGE 01</div>
+                            <div class="pipe-step-title">HSV Flame Mask</div>
+                            <div class="pipe-step-status" id="pipeStep1Status">Pending</div>
+                        </div>
+                        <div class="pipe-step-card" id="pipeStep2">
+                            <div class="pipe-step-num">STAGE 02</div>
+                            <div class="pipe-step-title">YCrCb Ember Boost</div>
+                            <div class="pipe-step-status" id="pipeStep2Status">Pending</div>
+                        </div>
+                        <div class="pipe-step-card" id="pipeStep3">
+                            <div class="pipe-step-num">STAGE 03</div>
+                            <div class="pipe-step-title">Smoke Excl. Filter</div>
+                            <div class="pipe-step-status" id="pipeStep3Status">Pending</div>
+                        </div>
+                        <div class="pipe-step-card" id="pipeStep4">
+                            <div class="pipe-step-num">STAGE 04</div>
+                            <div class="pipe-step-title">12-Layer Backbone</div>
+                            <div class="pipe-step-status" id="pipeStep4Status">Pending</div>
+                        </div>
+                        <div class="pipe-step-card" id="pipeStep5">
+                            <div class="pipe-step-num">STAGE 05</div>
+                            <div class="pipe-step-title">NMS & Heatmap</div>
+                            <div class="pipe-step-status" id="pipeStep5Status">Pending</div>
+                        </div>
+                    </div>
+
+                    <!-- Live 23-Layer Activation Flow Diagram -->
+                    <div style="margin-top: 24px; background: rgba(7, 8, 16, 0.7); padding: 20px; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.05);">
+                        <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 1.2px; color: #8390AA; margin-bottom: 14px; font-weight: 700; display: flex; justify-content: space-between;">
+                            <span>Neural Architecture Activation Flow</span>
+                            <span id="activeLayerTensorShape" style="color: #F5A623; font-family: 'JetBrains Mono', monospace;">Tensor [1, 3, 640, 640]</span>
+                        </div>
+                        <div class="neural-flow-nodes" id="neuralFlowNodes">
+                            <div class="flow-node" id="fnode-input">Input (640x640)</div>
+                            <span class="flow-arrow">→</span>
+                            <div class="flow-node" id="fnode-conv1">Conv1 (32f)</div>
+                            <span class="flow-arrow">→</span>
+                            <div class="flow-node" id="fnode-pool1">Pool1 (2x2)</div>
+                            <span class="flow-arrow">→</span>
+                            <div class="flow-node" id="fnode-conv2">Conv2 (64f)</div>
+                            <span class="flow-arrow">→</span>
+                            <div class="flow-node" id="fnode-c2f1">C2f1 Block</div>
+                            <span class="flow-arrow">→</span>
+                            <div class="flow-node" id="fnode-sppf">SPPF Module</div>
+                            <span class="flow-arrow">→</span>
+                            <div class="flow-node" id="fnode-up1">Upsample 2x</div>
+                            <span class="flow-arrow">→</span>
+                            <div class="flow-node" id="fnode-concat1">Concat</div>
+                            <span class="flow-arrow">→</span>
+                            <div class="flow-node" id="fnode-c2f2">C2f2 Block</div>
+                            <span class="flow-arrow">→</span>
+                            <div class="flow-node" id="fnode-detect">Detect Head</div>
+                            <span class="flow-arrow">→</span>
+                            <div class="flow-node" id="fnode-output">Output (Boxes)</div>
+                        </div>
+                    </div>
+                </div>
+
                 <div id="detectionResult" style="display: none;">
                     <div class="detection-result">
                         <div class="result-image">
@@ -2015,6 +2201,114 @@ continuation of code (interrupted mid-deployment section):
         const imageInput = document.getElementById('imageInput');
         const browseBtn = uploadZone ? uploadZone.querySelector('.btn-browse') : null;
 
+        // ===== LIVE NEURAL PIPELINE ANIMATION CONTROLLER =====
+        function runNeuralAnimation() {
+            return new Promise((resolve) => {
+                const loader = document.getElementById('neuralLoader');
+                const stageText = document.getElementById('neuralCurrentStageText');
+                const pctText = document.getElementById('neuralPctText');
+                const pBar = document.getElementById('neuralProgressBar');
+                const tensorText = document.getElementById('activeLayerTensorShape');
+
+                if (!loader) { resolve(); return; }
+                loader.style.display = 'block';
+
+                // Reset step cards
+                for (let i = 1; i <= 5; i++) {
+                    const el = document.getElementById('pipeStep' + i);
+                    const st = document.getElementById('pipeStep' + i + 'Status');
+                    if (el) el.className = 'pipe-step-card';
+                    if (st) st.textContent = 'Pending';
+                }
+
+                const flowNodes = ['fnode-input', 'fnode-conv1', 'fnode-pool1', 'fnode-conv2', 'fnode-c2f1', 'fnode-sppf', 'fnode-up1', 'fnode-concat1', 'fnode-c2f2', 'fnode-detect', 'fnode-output'];
+                flowNodes.forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) el.className = 'flow-node';
+                });
+
+                const steps = [
+                    {
+                        pct: 20,
+                        text: "Stage 1: HSV Flame Masking — Filtering high-saturation warm regions...",
+                        tensor: "Tensor [1, 32, 320, 320]",
+                        activeStep: 1,
+                        activeNodeIdx: 1
+                    },
+                    {
+                        pct: 40,
+                        text: "Stage 2: YCrCb Ember Boost — Chrominance & low-light warm area analysis...",
+                        tensor: "Tensor [1, 64, 160, 160]",
+                        activeStep: 2,
+                        activeNodeIdx: 3
+                    },
+                    {
+                        pct: 60,
+                        text: "Stage 3: Smoke Excl. Filter — Low-saturation gray-scale region extraction...",
+                        tensor: "Tensor [1, 128, 80, 80]",
+                        activeStep: 3,
+                        activeNodeIdx: 5
+                    },
+                    {
+                        pct: 85,
+                        text: "Stage 4: 12-Layer Custom Backbone Forward Pass & Feature Pyramids...",
+                        tensor: "Tensor [1, 512, 20, 20]",
+                        activeStep: 4,
+                        activeNodeIdx: 8
+                    },
+                    {
+                        pct: 100,
+                        text: "Stage 5: NMS Bounding Box Deduplication & Thermal Heatmap Synthesis...",
+                        tensor: "Tensor [1, 84, 8400]",
+                        activeStep: 5,
+                        activeNodeIdx: 10
+                    }
+                ];
+
+                let stepIdx = 0;
+                const stepInterval = setInterval(() => {
+                    if (stepIdx >= steps.length) {
+                        clearInterval(stepInterval);
+                        setTimeout(() => {
+                            loader.style.display = 'none';
+                            resolve();
+                        }, 400);
+                        return;
+                    }
+
+                    const s = steps[stepIdx];
+                    if (pctText) pctText.textContent = s.pct + '%';
+                    if (pBar) pBar.style.width = s.pct + '%';
+                    if (stageText) stageText.textContent = s.text;
+                    if (tensorText) tensorText.textContent = s.tensor;
+
+                    // Update pipeline step cards
+                    for (let i = 1; i <= 5; i++) {
+                        const el = document.getElementById('pipeStep' + i);
+                        const st = document.getElementById('pipeStep' + i + 'Status');
+                        if (i < s.activeStep) {
+                            if (el) el.className = 'pipe-step-card done';
+                            if (st) st.textContent = 'Complete ✓';
+                        } else if (i === s.activeStep) {
+                            if (el) el.className = 'pipe-step-card active';
+                            if (st) st.textContent = 'Active...';
+                        }
+                    }
+
+                    // Update flow node activation
+                    for (let n = 0; n < flowNodes.length; n++) {
+                        const fn = document.getElementById(flowNodes[n]);
+                        if (fn) {
+                            if (n < s.activeNodeIdx) fn.className = 'flow-node done';
+                            else if (n === s.activeNodeIdx) fn.className = 'flow-node active';
+                        }
+                    }
+
+                    stepIdx++;
+                }, 520);
+            });
+        }
+
         if (browseBtn && imageInput) {
             browseBtn.addEventListener('click', () => imageInput.click());
             uploadZone.addEventListener('dragover', (e) => {
@@ -2048,15 +2342,22 @@ continuation of code (interrupted mid-deployment section):
 
                 try {
                     uploadZone.style.display = 'none';
-                    document.getElementById('detectionResult').style.display = 'block';
+                    document.getElementById('detectionResult').style.display = 'none';
 
-                    const response = await fetch('http://localhost:5000/detect', {
+                    // Launch API call in background & start live neural pipeline animation
+                    const apiPromise = fetch('http://localhost:5000/detect', {
                         method: 'POST',
                         body: formData
                     });
 
+                    // Run 2.6s smooth live neural architecture animation pass
+                    await runNeuralAnimation();
+
+                    const response = await apiPromise;
                     if (!response.ok) throw new Error('API error');
                     const data = await response.json();
+
+                    document.getElementById('detectionResult').style.display = 'block';
 
                     // Render annotated base64 image
                     const detectionImg = document.getElementById('detectionImg');
@@ -2103,6 +2404,8 @@ continuation of code (interrupted mid-deployment section):
                 } catch (error) {
                     console.error('Detection error:', error);
                     alert('API unavailable. Ensure backend is running at http://localhost:5000');
+                    const loader = document.getElementById('neuralLoader');
+                    if (loader) loader.style.display = 'none';
                     uploadZone.style.display = 'block';
                     document.getElementById('detectionResult').style.display = 'none';
                 }
