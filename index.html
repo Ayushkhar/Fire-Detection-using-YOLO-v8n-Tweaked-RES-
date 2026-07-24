@@ -1,0 +1,2326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FireGuard AI — Real-Time Fire & Smoke Detection</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #070810;
+            color: #E8ECF8;
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        /* ===== UTILITY CLASSES ===== */
+        .container {
+            max-width: 1440px;
+            margin: 0 auto;
+            padding: 0 24px;
+        }
+
+        .section-spacing {
+            padding: 120px 0;
+        }
+
+        @media (max-width: 768px) {
+            .section-spacing {
+                padding: 80px 0;
+            }
+            .container {
+                padding: 0 16px;
+            }
+        }
+
+        /* ===== HEADER / NAVIGATION ===== */
+        header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            background: rgba(7, 8, 16, 0.7);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0);
+            transition: all 0.3s ease;
+        }
+
+        header.scrolled {
+            background: rgba(7, 8, 16, 0.95);
+            border-bottom-color: rgba(255, 255, 255, 0.07);
+            box-shadow: 0 8px 32px rgba(232, 80, 32, 0.1);
+        }
+
+        nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 0;
+            height: 72px;
+        }
+
+        .nav-logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-weight: 900;
+            font-size: 20px;
+            letter-spacing: -1px;
+            text-decoration: none;
+            color: #E8ECF8;
+        }
+
+        .nav-logo svg {
+            width: 32px;
+            height: 32px;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 40px;
+            list-style: none;
+        }
+
+        .nav-links a {
+            color: #8390AA;
+            text-decoration: none;
+            font-size: 15px;
+            font-weight: 500;
+            transition: color 0.2s ease;
+        }
+
+        .nav-links a:hover {
+            color: #E84020;
+        }
+
+        .nav-right {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .status-badge {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: rgba(0, 209, 108, 0.1);
+            border: 1px solid rgba(0, 209, 108, 0.3);
+            border-radius: 99px;
+            font-size: 13px;
+            font-weight: 600;
+            color: #00D16C;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            background: #00D16C;
+            border-radius: 50%;
+            animation: pulse-dot 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse-dot {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+
+        .btn-request {
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #E84020 0%, #F07220 100%);
+            border: none;
+            border-radius: 10px;
+            color: white;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-request:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 24px rgba(232, 80, 32, 0.4);
+        }
+
+        .hamburger {
+            display: none;
+            flex-direction: column;
+            gap: 6px;
+            cursor: pointer;
+        }
+
+        .hamburger span {
+            width: 24px;
+            height: 2px;
+            background: #E8ECF8;
+            border-radius: 2px;
+            transition: all 0.3s ease;
+        }
+
+        @media (max-width: 768px) {
+            .nav-links {
+                display: none;
+            }
+            .hamburger {
+                display: flex;
+            }
+            .nav-right {
+                gap: 12px;
+            }
+            .status-badge {
+                display: none;
+            }
+        }
+
+        /* ===== HERO SECTION ===== */
+        .hero {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            padding-top: 72px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        .hero-content {
+            position: relative;
+            z-index: 2;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 60px;
+            align-items: center;
+        }
+
+        .hero-text h1 {
+            font-size: 72px;
+            font-weight: 900;
+            line-height: 1.1;
+            letter-spacing: -3px;
+            margin-bottom: 20px;
+        }
+
+        .hero-text h1 .fire-gradient {
+            background: linear-gradient(135deg, #E84020 0%, #F5A623 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: hue-shift 4s ease-in-out infinite;
+        }
+
+        @keyframes hue-shift {
+            0%, 100% { filter: hue-rotate(0deg); }
+            50% { filter: hue-rotate(10deg); }
+        }
+
+        .hero-text h2 {
+            font-size: 18px;
+            font-weight: 500;
+            color: #8390AA;
+            margin-bottom: 30px;
+            line-height: 1.7;
+        }
+
+        .hero-buttons {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 40px;
+        }
+
+        .btn-primary {
+            padding: 16px 32px;
+            background: linear-gradient(135deg, #E84020 0%, #F07220 100%);
+            border: none;
+            border-radius: 10px;
+            color: white;
+            font-weight: 700;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-primary::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.2);
+            transition: left 0.3s ease;
+            z-index: -1;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 20px 40px rgba(232, 80, 32, 0.5);
+        }
+
+        .btn-primary:hover::before {
+            left: 100%;
+        }
+
+        .btn-secondary {
+            padding: 16px 32px;
+            background: transparent;
+            border: 2px solid rgba(232, 80, 32, 0.5);
+            border-radius: 10px;
+            color: #E84020;
+            font-weight: 700;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-secondary:hover {
+            border-color: #E84020;
+            background: rgba(232, 80, 32, 0.1);
+            transform: translateY(-4px);
+        }
+
+        .hero-stats {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .stat-pill {
+            padding: 8px 16px;
+            background: rgba(13, 16, 34, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.07);
+            border-radius: 99px;
+            font-size: 13px;
+            font-weight: 600;
+            color: #8390AA;
+        }
+
+        .stat-pill.accent {
+            color: #F5A623;
+            border-color: rgba(245, 166, 35, 0.3);
+        }
+
+        .hero-demo {
+            position: relative;
+            height: 500px;
+            background: rgba(13, 16, 34, 0.5);
+            border: 1px solid rgba(232, 80, 32, 0.3);
+            border-radius: 14px;
+            overflow: hidden;
+            animation: fade-up 0.8s ease-out 0.3s both;
+        }
+
+        @keyframes fade-up {
+            from {
+                opacity: 0;
+                transform: translateY(40px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .hero-demo-inner {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: #8390AA;
+            font-size: 14px;
+        }
+
+        .demo-canvas {
+            width: 100%;
+            height: 100%;
+        }
+
+        @media (max-width: 1024px) {
+            .hero-content {
+                grid-template-columns: 1fr;
+            }
+            .hero-text h1 {
+                font-size: 48px;
+            }
+            .hero-demo {
+                height: 350px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .hero {
+                min-height: 80vh;
+            }
+            .hero-text h1 {
+                font-size: 36px;
+            }
+            .hero-buttons {
+                flex-direction: column;
+            }
+            .btn-primary, .btn-secondary {
+                width: 100%;
+            }
+        }
+
+        /* ===== DEMO SECTION ===== */
+        .demo-section {
+            background: linear-gradient(180deg, #0d1022 0%, #070810 100%);
+        }
+
+        .section-label {
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 2px;
+            color: #E84020;
+            margin-bottom: 12px;
+            text-transform: uppercase;
+        }
+
+        .section-title {
+            font-size: 56px;
+            font-weight: 900;
+            letter-spacing: -2px;
+            margin-bottom: 40px;
+            line-height: 1.2;
+        }
+
+        .demo-tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 40px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+        }
+
+        .demo-tab {
+            padding: 16px 24px;
+            background: transparent;
+            border: none;
+            border-bottom: 3px solid transparent;
+            color: #8390AA;
+            font-weight: 600;
+            font-size: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .demo-tab.active {
+            color: #E84020;
+            border-bottom-color: #E84020;
+        }
+
+        .demo-tab:hover {
+            color: #E8ECF8;
+        }
+
+        .demo-content {
+            display: none;
+        }
+
+        .demo-content.active {
+            display: block;
+            animation: fade-in 0.3s ease;
+        }
+
+        @keyframes fade-in {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .upload-zone {
+            padding: 60px 40px;
+            background: rgba(13, 16, 34, 0.5);
+            border: 2px dashed rgba(232, 80, 32, 0.3);
+            border-radius: 14px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .upload-zone:hover {
+            border-color: #E84020;
+            background: rgba(232, 80, 32, 0.05);
+        }
+
+        .upload-icon {
+            width: 48px;
+            height: 48px;
+            margin: 0 auto 20px;
+            color: #E84020;
+        }
+
+        .upload-zone h3 {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 8px;
+            color: #E8ECF8;
+        }
+
+        .upload-zone p {
+            color: #8390AA;
+            font-size: 14px;
+            margin-bottom: 20px;
+        }
+
+        .btn-browse {
+            padding: 12px 28px;
+            background: rgba(232, 80, 32, 0.2);
+            border: 1px solid #E84020;
+            border-radius: 8px;
+            color: #E84020;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-browse:hover {
+            background: rgba(232, 80, 32, 0.3);
+        }
+
+        .upload-input {
+            display: none;
+        }
+
+        .detection-result {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 32px;
+            margin-top: 40px;
+        }
+
+        .result-image {
+            position: relative;
+            height: 400px;
+            background: #111830;
+            border: 1px solid rgba(255, 255, 255, 0.07);
+            border-radius: 14px;
+            overflow: hidden;
+        }
+
+        .result-image canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        .result-metrics {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        .metric-card {
+            padding: 24px;
+            background: rgba(13, 16, 34, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.07);
+            border-radius: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .metric-card:hover {
+            border-color: rgba(232, 80, 32, 0.3);
+            background: rgba(232, 80, 32, 0.05);
+            transform: translateY(-2px);
+        }
+
+        .metric-label {
+            font-size: 13px;
+            color: #8390AA;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .metric-value {
+            font-size: 32px;
+            font-weight: 900;
+            color: #E8ECF8;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .metric-value.accent {
+            color: #E84020;
+        }
+
+        .metric-bar {
+            width: 100%;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+            margin-top: 8px;
+            overflow: hidden;
+        }
+
+        .metric-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #E84020 0%, #F07220 100%);
+            border-radius: 3px;
+            animation: fill-bar 1s ease-out;
+        }
+
+        @keyframes fill-bar {
+            from { width: 0; }
+            to { width: var(--fill-percentage); }
+        }
+
+        .detection-list {
+            margin-top: 24px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .detection-item {
+            padding: 12px;
+            background: rgba(13, 16, 34, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+            font-size: 13px;
+        }
+
+        .detection-class {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #E8ECF8;
+        }
+
+        .detection-class-icon {
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .detection-confidence {
+            color: #F5A623;
+            font-weight: 600;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .camera-preview {
+            position: relative;
+            height: 500px;
+            background: #111830;
+            border: 1px solid rgba(255, 255, 255, 0.07);
+            border-radius: 14px;
+            overflow: hidden;
+            margin-bottom: 24px;
+        }
+
+        .camera-canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        .camera-hud {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 16px;
+        }
+
+        .hud-top {
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .hud-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: #E84020;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .hud-corner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid #E84020;
+            position: absolute;
+        }
+
+        .hud-corner.tl { top: 16px; left: 16px; border-right: none; border-bottom: none; }
+        .hud-corner.tr { top: 16px; right: 16px; border-left: none; border-bottom: none; }
+        .hud-corner.bl { bottom: 16px; left: 16px; border-right: none; border-top: none; }
+        .hud-corner.br { bottom: 16px; right: 16px; border-left: none; border-top: none; }
+
+        .camera-controls {
+            display: flex;
+            gap: 12px;
+            margin-top: 20px;
+        }
+
+        .btn-camera {
+            flex: 1;
+            padding: 12px 24px;
+            background: rgba(232, 80, 32, 0.2);
+            border: 1px solid #E84020;
+            border-radius: 8px;
+            color: #E84020;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-camera:hover {
+            background: rgba(232, 80, 32, 0.3);
+        }
+
+        .btn-camera.active {
+            background: #E84020;
+            color: white;
+        }
+
+        @media (max-width: 1024px) {
+            .detection-result {
+                grid-template-columns: 1fr;
+            }
+            .result-metrics {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* ===== TECHNOLOGY SECTION ===== */
+        .tech-section {
+            background: #070810;
+        }
+
+        .tech-stages {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 32px;
+            margin-bottom: 80px;
+        }
+
+        .stage-card {
+            padding: 40px;
+            background: linear-gradient(135deg, rgba(13, 16, 34, 0.5) 0%, rgba(17, 24, 48, 0.3) 100%);
+            border: 1px solid rgba(255, 255, 255, 0.07);
+            border-radius: 14px;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stage-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(232, 80, 32, 0.1), transparent);
+            transition: left 0.6s ease;
+        }
+
+        .stage-card:hover::before {
+            left: 100%;
+        }
+
+        .stage-card:hover {
+            border-color: rgba(232, 80, 32, 0.3);
+            transform: translateY(-4px);
+        }
+
+        .stage-number {
+            font-size: 48px;
+            font-weight: 900;
+            color: #E84020;
+            margin-bottom: 16px;
+        }
+
+        .stage-title {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 12px;
+            color: #E8ECF8;
+        }
+
+        .stage-icon {
+            width: 40px;
+            height: 40px;
+            margin-bottom: 16px;
+            color: #E84020;
+        }
+
+        .stage-description {
+            font-size: 14px;
+            color: #8390AA;
+            line-height: 1.6;
+            margin-bottom: 16px;
+        }
+
+        .stage-bullets {
+            list-style: none;
+        }
+
+        .stage-bullets li {
+            font-size: 13px;
+            color: #8390AA;
+            margin-bottom: 8px;
+            padding-left: 20px;
+            position: relative;
+        }
+
+        .stage-bullets li::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            color: #F07220;
+        }
+
+        .architecture-viz {
+            margin-top: 60px;
+            padding: 40px;
+            background: rgba(13, 16, 34, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.07);
+            border-radius: 14px;
+            overflow-x: auto;
+        }
+
+        .architecture-title {
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 24px;
+            color: #E8ECF8;
+        }
+
+        .layer-diagram {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            min-width: 100%;
+            overflow-x: auto;
+            padding-bottom: 16px;
+        }
+
+        .layer-node {
+            padding: 12px 16px;
+            background: rgba(17, 24, 48, 0.8);
+            border: 1px solid rgba(232, 80, 32, 0.2);
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 600;
+            white-space: nowrap;
+            color: #E8ECF8;
+            transition: all 0.2s ease;
+            cursor: help;
+            position: relative;
+        }
+
+        .layer-node:hover {
+            border-color: #E84020;
+            background: rgba(232, 80, 32, 0.1);
+            box-shadow: 0 4px 12px rgba(232, 80, 32, 0.2);
+        }
+
+        .layer-arrow {
+            font-size: 18px;
+            color: #8390AA;
+            flex-shrink: 0;
+        }
+
+        @media (max-width: 1024px) {
+            .tech-stages {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* ===== PERFORMANCE SECTION ===== */
+        .performance-section {
+            background: linear-gradient(180deg, #0d1022 0%, #070810 100%);
+        }
+
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 32px;
+            margin-bottom: 80px;
+        }
+
+        .kpi-card {
+            text-align: center;
+        }
+
+        .kpi-number {
+            font-size: 72px;
+            font-weight: 900;
+            font-family: 'JetBrains Mono', monospace;
+            margin-bottom: 12px;
+            background: linear-gradient(135deg, #E84020 0%, #F5A623 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .kpi-label {
+            font-size: 16px;
+            font-weight: 600;
+            color: #8390AA;
+        }
+
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: rgba(13, 16, 34, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.07);
+            border-radius: 14px;
+            overflow: hidden;
+        }
+
+        .comparison-table th,
+        .comparison-table td {
+            padding: 16px 20px;
+            text-align: left;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+        }
+
+        .comparison-table th {
+            background: rgba(17, 24, 48, 0.5);
+            font-weight: 700;
+            font-size: 14px;
+            color: #E8ECF8;
+        }
+
+        .comparison-table td {
+            font-size: 14px;
+            color: #8390AA;
+        }
+
+        .comparison-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .comparison-table td.highlight {
+            color: #E84020;
+            font-weight: 600;
+        }
+
+        @media (max-width: 1024px) {
+            .kpi-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .kpi-grid {
+                grid-template-columns: 1fr;
+            }
+            .kpi-number {
+                font-size: 48px;
+            }
+        }
+
+        /* ===== DEPLOYMENT SECTION ===== */
+        .deployment-section {
+            background: #070810;
+        }
+
+        .deployment-cards {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 24px;
+            margin-bottom: 60px;
+        }
+
+        .deployment-card {
+            padding: 32px;
+            background: rgba(13, 16, 34, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.07);
+            border-radius: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .deployment-card:hover {
+            border-color: rgba(232, 80, 32, 0.3);
+            transform: translateY(-4px);
+        }
+
+        .deployment-icon {
+            width: 40px;
+            height: 40px;
+            margin-bottom: 16px;
+            color: #E84020;
+        }
+
+        .deployment-title {
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 12px;
+            color: #E8ECF8;
+        }
+
+        .deployment-command {
+            background: rgba(7, 8, 16, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.07);
+            border-radius: 8px;
+            padding: 12px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            color: #00D16C;
+            margin-top: 12px;
+            overflow-x: auto;
+            position: relative;
+        }
+
+        .copy-button {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            padding: 4px 12px;
+            background: rgba(232, 80, 32, 0.2);
+            border: 1px solid #E84020;
+            border-radius: 4px;
+            color: #E84020;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .copy-button:hover {
+            background: rgba(232, 80, 32, 0.3);
+        }
+
+        .api-section {
+            padding: 40px;
+            background: rgba(13, 16, 34, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.07);
+            border-radius: 14px;
+        }
+
+        .api-title {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 24px;
+            color: #E8ECF8;
+        }
+
+        .api-endpoint {
+            margin-bottom: 24px;
+            padding: 16px;
+            background: rgba(7, 8, 16, 0.8);
+            border-left: 3px solid #E84020;
+            border-radius: 8px;
+        }
+
+        .api-method {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            font-weight: 700;
+            color: #00D16C;
+            margin-bottom: 8px;
+        }
+
+        .api-path {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 14px;
+            color: #E8ECF8;
+            margin-bottom: 8px;
+        }
+
+        .api-description {
+            font-size: 13px;
+            color: #8390AA;
+        }
+
+        .code-block {
+            background: rgba(7, 8, 16, 0.9);
+            border: 1px solid rgba(255, 255, 255, 0.07);
+            border-radius: 8px;
+            padding: 20px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            color: #E8ECF8;
+            overflow-x: auto;
+            margin-top: 12px;
+            line-height: 1.6;
+        }
+
+        .code-line {
+            display: block;
+            color: #8390AA;
+        }
+
+        .code-keyword {
+            color: #F07220;
+        }
+
+        .code-string {
+            color: #00D16C;
+        }
+
+        .code-number {
+            color: #F5A623;
+        }
+
+        @media (max-width: 1024px) {
+            .deployment-cards {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* ===== FOOTER ===== */
+        footer {
+            background: rgba(7, 8, 16, 0.8);
+            border-top: 1px solid rgba(255, 255, 255, 0.07);
+            padding: 60px 0 40px;
+        }
+
+        .footer-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr 1fr;
+            gap: 40px;
+            margin-bottom: 40px;
+        }
+
+        .footer-col h4 {
+            font-size: 14px;
+            font-weight: 700;
+            margin-bottom: 16px;
+            color: #E8ECF8;
+        }
+
+        .footer-col ul {
+            list-style: none;
+        }
+
+        .footer-col ul li {
+            margin-bottom: 12px;
+        }
+
+        .footer-col a {
+            font-size: 14px;
+            color: #8390AA;
+            text-decoration: none;
+            transition: color 0.2s ease;
+        }
+
+        .footer-col a:hover {
+            color: #E84020;
+        }
+
+        .footer-bottom {
+            border-top: 1px solid rgba(255, 255, 255, 0.07);
+            padding-top: 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 13px;
+            color: #8390AA;
+        }
+
+        .social-links {
+            display: flex;
+            gap: 16px;
+        }
+
+        .social-links a {
+            display: inline-flex;
+            width: 32px;
+            height: 32px;
+            align-items: center;
+            justify-content: center;
+            background: rgba(13, 16, 34, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.07);
+            border-radius: 50%;
+            color: #8390AA;
+            text-decoration: none;
+            transition: all 0.2s ease;
+        }
+
+        .social-links a:hover {
+            background: rgba(232, 80, 32, 0.2);
+            border-color: #E84020;
+            color: #E84020;
+        }
+
+        @media (max-width: 768px) {
+            .footer-content {
+                grid-template-columns: 1fr 1fr;
+            }
+            .footer-bottom {
+                flex-direction: column;
+                gap: 16px;
+                text-align: center;
+            }
+        }
+
+        /* ===== SCROLL ANIMATIONS ===== */
+        .fade-on-scroll {
+            opacity: 0;
+            transform: translateY(40px);
+            transition: all 0.6s ease;
+        }
+
+        .fade-on-scroll.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* ===== GRAIN TEXTURE ===== */
+        .grain-filter {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            opacity: 0.02;
+            z-index: 9999;
+        }
+
+        /* Scrollbar Styling */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(13, 16, 34, 0.5);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(232, 80, 32, 0.5);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(232, 80, 32, 0.7);
+        }
+
+        /* Loading State */
+        .skeleton {
+            background: linear-gradient(90deg, rgba(13, 16, 34, 0.6), rgba(17, 24, 48, 0.6), rgba(13, 16, 34, 0.6));
+            background-size: 200% 100%;
+            animation: skeleton-loading 2s infinite;
+        }
+
+        @keyframes skeleton-loading {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+    </style>
+</head>
+<body>
+    <!-- GRAIN TEXTURE SVG FILTER -->
+    <svg style="display: none;">
+        <filter id="grain">
+            <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="4" result="noise" />
+            <feColorMatrix in="noise" type="saturate" values="0" />
+            <feBlend in="SourceGraphic" in2="noise" mode="overlay" />
+        </filter>
+    </svg>
+
+    <!-- HEADER -->
+    <header>
+        <nav class="container">
+            <a href="#" class="nav-logo">
+                <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M16 2L8 10L12 10L6 20L20 8L16 8L22 2Z" fill="#E84020" />
+                </svg>
+                FireGuard AI
+            </a>
+            <ul class="nav-links">
+                <li><a href="#features">Features</a></li>
+                <li><a href="#technology">Technology</a></li>
+                <li><a href="#performance">Performance</a></li>
+                <li><a href="#deployment">Deploy</a></li>
+            </ul>
+            <div class="nav-right">
+                <div class="status-badge">
+                    <div class="status-dot"></div>
+                    System Online
+                </div>
+                <a href="#features" class="btn-request" onclick="event.preventDefault(); document.getElementById('features').scrollIntoView({behavior:'smooth'});">Request Access</a>
+            </div>
+            <div class="hamburger">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+        </nav>
+    </header>
+
+    <!-- HERO SECTION -->
+    <section class="hero">
+        <canvas class="hero-canvas" id="heroCanvas"></canvas>
+        <div class="container">
+            <div class="hero-content">
+                <div class="hero-text fade-on-scroll">
+                    <p class="section-label">Real-Time Fire & Smoke Detection</p>
+                    <h1>Detect Fires.<br><span class="fire-gradient">Save Lives.</span></h1>
+                    <h2>FireGuard AI uses advanced computer vision and real-time analytics to detect fire and smoke earlier—across any environment, at any scale.</h2>
+                    <div class="hero-buttons">
+                        <button class="btn-primary" onclick="document.getElementById('features').scrollIntoView({behavior:'smooth'});">Start Detection</button>
+                        <button class="btn-secondary" onclick="document.getElementById('technology').scrollIntoView({behavior:'smooth'});">View Architecture</button>
+                    </div>
+                    <div class="hero-stats">
+                        <div class="stat-pill">225 Layers</div>
+                        <div class="stat-pill">11.1M Parameters</div>
+                        <div class="stat-pill">28.6 GFLOPs</div>
+                        <div class="stat-pill accent">97.2% Accuracy</div>
+                        <div class="stat-pill accent">86.3% → 97.2% Boost</div>
+                        <div class="stat-pill accent">Springer LNEE 2025</div>
+                    </div>
+                </div>
+                <div class="hero-demo fade-on-scroll">
+                    <canvas class="demo-canvas" id="demoCanvas"></canvas>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- LIVE DEMO SECTION -->
+    <section class="demo-section section-spacing" id="features">
+        <div class="container">
+            <p class="section-label">Live Demo</p>
+            <h2 class="section-title">See FireGuard AI<br>in Action</h2>
+
+            <div class="demo-tabs">
+                <button class="demo-tab active" data-tab="image">
+                    <svg style="display: inline; width: 16px; height: 16px; margin-right: 8px; vertical-align: middle;" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
+                    </svg>
+                    Image Upload
+                </button>
+                <button class="demo-tab" data-tab="video">
+                    <svg style="display: inline; width: 16px; height: 16px; margin-right: 8px; vertical-align: middle;" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/>
+                    </svg>
+                    Video Processing
+                </button>
+                <button class="demo-tab" data-tab="camera">
+                    <svg style="display: inline; width: 16px; height: 16px; margin-right: 8px; vertical-align: middle;" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/>
+                    </svg>
+                    Live Camera
+                </button>
+            </div>
+
+            <!-- IMAGE UPLOAD TAB -->
+            <div class="demo-content active" data-content="image">
+                <div class="upload-zone" id="uploadZone">
+                    <svg class="upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="17 8 12 3 7 8"></polyline>
+                        <line x1="12" y1="3" x2="12" y2="15"></line>
+                    </svg>
+                    <h3>Upload an Image</h3>
+                    <p>Drag and drop an image, or click to browse</p>
+                    <button class="btn-browse">Browse Files</button>
+                    <input type="file" class="upload-input" id="imageInput" accept="image/*">
+                </div>
+                <div id="detectionResult" style="display: none;">
+                    <div class="detection-result">
+                        <div class="result-image">
+                            <canvas id="detectionCanvas" style="display:none;"></canvas>
+                            <img id="detectionImg" style="width:100%;height:100%;object-fit:contain;display:block;" alt="Detection Result" />
+                        </div>
+                        <div class="result-metrics" id="metricsGrid">
+                            <div class="metric-card">
+                                <div class="metric-label">Precision</div>
+                                <div class="metric-value accent">--</div>
+                                <div class="metric-bar"><div class="metric-bar-fill"></div></div>
+                            </div>
+                            <div class="metric-card">
+                                <div class="metric-label">Recall</div>
+                                <div class="metric-value">--</div>
+                                <div class="metric-bar"><div class="metric-bar-fill"></div></div>
+                            </div>
+                            <div class="metric-card">
+                                <div class="metric-label">F1 Score</div>
+                                <div class="metric-value">--</div>
+                                <div class="metric-bar"><div class="metric-bar-fill"></div></div>
+                            </div>
+                            <div class="metric-card">
+                                <div class="metric-label">mAP@50</div>
+                                <div class="metric-value accent">--</div>
+                                <div class="metric-bar"><div class="metric-bar-fill"></div></div>
+                            </div>
+                            <div class="metric-card">
+                                <div class="metric-label">Confidence</div>
+                                <div class="metric-value">--</div>
+                                <div class="metric-bar"><div class="metric-bar-fill"></div></div>
+                            </div>
+                            <div class="metric-card">
+                                <div class="metric-label">Inference Time</div>
+                                <div class="metric-value">--</div>
+                            </div>
+                            <div class="metric-card">
+                                <div class="metric-label">FPS</div>
+                                <div class="metric-value">--</div>
+                            </div>
+                            <div class="metric-card">
+                                <div class="metric-label">Total Detections</div>
+                                <div class="metric-value accent">--</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="detection-list" id="detectionList"></div>
+                    <div style="text-align: center; margin-top: 24px;">
+                        <button id="resetImageBtn" class="btn-browse" style="background: rgba(232, 80, 32, 0.15); border: 1px solid #E84020; color: #E84020;">Upload Another Image</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- VIDEO PROCESSING TAB -->
+            <div class="demo-content" data-content="video">
+                <div class="upload-zone" id="videoUploadZone">
+                    <svg class="upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M23 7l-7 5 7 5V7z"></path>
+                        <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
+                    </svg>
+                    <h3>Upload a Video</h3>
+                    <p>MP4, MOV, or AVI format supported</p>
+                    <button class="btn-browse">Browse Files</button>
+                    <input type="file" class="upload-input" id="videoInput" accept="video/*">
+                </div>
+                <div id="videoProgressContainer" style="display: none; padding: 30px; text-align: center; background: rgba(13, 16, 34, 0.5); border-radius: 14px; border: 1px solid rgba(255, 255, 255, 0.07);">
+                    <h4 style="font-size: 18px; margin-bottom: 12px; color: #E8ECF8;">Processing Video...</h4>
+                    <div style="font-size: 24px; font-weight: 800; color: #F5A623; font-family: 'JetBrains Mono', monospace;" id="videoPct">0%</div>
+                    <div style="width: 100%; height: 8px; background: rgba(255,255,255,0.1); border-radius: 4px; margin-top: 14px; overflow: hidden;">
+                        <div id="videoBarFill" style="width: 0%; height: 100%; background: linear-gradient(90deg, #4A90E2, #00D16C); transition: width 0.3s;"></div>
+                    </div>
+                </div>
+                <div id="videoResultContainer" style="display: none; margin-top: 24px; text-align: center;">
+                    <div class="result-image" style="height: 460px;">
+                        <video id="videoResultPlayer" controls style="width: 100%; height: 100%; object-fit: contain; background: #000;"></video>
+                    </div>
+                    <button id="resetVideoBtn" class="btn-browse" style="margin-top: 24px; background: rgba(74, 144, 226, 0.15); border: 1px solid #4A90E2; color: #4A90E2;">Process Another Video</button>
+                </div>
+            </div>
+
+            <!-- LIVE CAMERA TAB -->
+            <div class="demo-content" data-content="camera">
+                <div class="camera-preview">
+                    <canvas class="camera-canvas" id="cameraCanvas"></canvas>
+                    <div class="camera-hud">
+                        <div class="hud-top">
+                            <div>
+                                <div class="hud-label">LIVE</div>
+                            </div>
+                            <div>
+                                <div class="hud-label" id="cameraStatus">AWAITING STREAM</div>
+                            </div>
+                        </div>
+                        <div class="hud-corner tl"></div>
+                        <div class="hud-corner tr"></div>
+                        <div class="hud-corner bl"></div>
+                        <div class="hud-corner br"></div>
+                    </div>
+                </div>
+                <div class="camera-controls">
+                    <button class="btn-camera active" id="startCameraBtn">Start Camera</button>
+                    <button class="btn-camera" id="stopCameraBtn">Stop Camera</button>
+                </div>
+                <div class="result-metrics" id="cameraMetrics" style="margin-top: 24px;">
+                    <div class="metric-card">
+                        <div class="metric-label">FPS</div>
+                        <div class="metric-value">0</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">Objects</div>
+                        <div class="metric-value">0</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">Confidence</div>
+                        <div class="metric-value">0%</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">Frames Processed</div>
+                        <div class="metric-value">0</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- TECHNOLOGY SECTION -->
+    <section class="tech-section section-spacing" id="technology">
+        <div class="container">
+            <p class="section-label">How It Works</p>
+            <h2 class="section-title">Multi-Stage<br>Detection Engine</h2>
+
+            <div class="tech-stages">
+                <div class="stage-card fade-on-scroll">
+                    <div class="stage-number">1</div>
+                    <div class="stage-icon">
+                        <svg viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm3.5-9c.83 0 1.5-.67 1.5-1.5S16.33 8 15.5 8 14 8.67 14 9.5s.67 1.5 1.5 1.5zm-7 0c.83 0 1.5-.67 1.5-1.5S9.33 8 8.5 8 7 8.67 7 9.5 7.67 11 8.5 11zm3.5 6.5c2.33 0 4.31-1.46 5.11-3.5H6.89c.8 2.04 2.78 3.5 5.11 3.5z"/>
+                        </svg>
+                    </div>
+                    <h3 class="stage-title">HSV Flame Masking</h3>
+                    <p class="stage-description">Color space analysis targeting bright visible flames</p>
+                    <ul class="stage-bullets">
+                        <li>Analyzes RGB → HSV color space</li>
+                        <li>Detects high-saturation warm colors</li>
+                        <li>Filters false positives in real-time</li>
+                    </ul>
+                </div>
+
+                <div class="stage-card fade-on-scroll">
+                    <div class="stage-number">2</div>
+                    <div class="stage-icon">
+                        <svg viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
+                        </svg>
+                    </div>
+                    <h3 class="stage-title">YCrCb Ember Detection</h3>
+                    <p class="stage-description">Warm chrominance analysis for low-light conditions</p>
+                    <ul class="stage-bullets">
+                        <li>Processes YCrCb chrominance channels</li>
+                        <li>Catches indirect glow & embers</li>
+                        <li>Optimized for night/low-light scenes</li>
+                    </ul>
+                </div>
+
+                <div class="stage-card fade-on-scroll">
+                    <div class="stage-number">3</div>
+                    <div class="stage-icon">
+                        <svg viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/>
+                        </svg>
+                    </div>
+                    <h3 class="stage-title">Smoke Identification</h3>
+                    <p class="stage-description">Low-saturation region analysis with brightness exclusion</p>
+                    <ul class="stage-bullets">
+                        <li>Analyzes gray/low-sat regions</li>
+                        <li>Brightness-based filtering</li>
+                        <li>Minimizes environmental noise</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="architecture-viz fade-on-scroll">
+                <h3 class="architecture-title">Neural Network Architecture (23 Layers)</h3>
+                <div class="layer-diagram">
+                    <div class="layer-node" title="Input: 640x640x3">Input</div>
+                    <span class="layer-arrow">→</span>
+                    <div class="layer-node" title="Conv 3×3: 32 filters">Conv1</div>
+                    <span class="layer-arrow">→</span>
+                    <div class="layer-node" title="MaxPool 2×2">Pool1</div>
+                    <span class="layer-arrow">→</span>
+                    <div class="layer-node" title="Conv 3×3: 64 filters">Conv2</div>
+                    <span class="layer-arrow">→</span>
+                    <div class="layer-node" title="C2f Block">C2f1</div>
+                    <span class="layer-arrow">→</span>
+                    <div class="layer-node" title="SPPF: Spatial Pyramid">SPPF</div>
+                    <span class="layer-arrow">→</span>
+                    <div class="layer-node" title="Upsampling 2x">Up1</div>
+                    <span class="layer-arrow">→</span>
+                    <div class="layer-node" title="Concatenate">Concat1</div>
+                    <span class="layer-arrow">→</span>
+                    <div class="layer-node" title="C2f Block">C2f2</div>
+                    <span class="layer-arrow">→</span>
+                    <div class="layer-node" title="Detection Head">Detect</div>
+                    <span class="layer-arrow">→</span>
+                    <div class="layer-node" title="Output: Fire/Smoke">Output</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- PERFORMANCE SECTION -->
+    <section class="performance-section section-spacing" id="performance">
+        <div class="container">
+            <p class="section-label">Benchmark Results</p>
+            <h2 class="section-title">Performance That<br>Sets the Standard</h2>
+
+            <div class="kpi-grid fade-on-scroll">
+                <div class="kpi-card">
+                    <div class="kpi-number">97.2%</div>
+                    <div class="kpi-label">Detection Accuracy</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-number">86.3%</div>
+                    <div class="kpi-label">YOLOv8n Baseline</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-number">269ms</div>
+                    <div class="kpi-label">Avg Inference (CPU)</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-number">11.1M</div>
+                    <div class="kpi-label">Model Parameters</div>
+                </div>
+            </div>
+
+            <table class="comparison-table fade-on-scroll">
+                <thead>
+                    <tr>
+                        <th>Metric</th>
+                        <th>FireGuard AI (Custom YOLOv8)</th>
+                        <th>YOLOv8n Baseline</th>
+                        <th>YOLOv8s Base</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Detection Accuracy</td>
+                        <td class="highlight">97.2%</td>
+                        <td>86.3%</td>
+                        <td>88.5%</td>
+                    </tr>
+                    <tr>
+                        <td>mAP@50 Score</td>
+                        <td class="highlight">97.2%</td>
+                        <td>85.1%</td>
+                        <td>87.4%</td>
+                    </tr>
+                    <tr>
+                        <td>Backbone Layers</td>
+                        <td class="highlight">12 custom</td>
+                        <td>9 standard</td>
+                        <td>9 standard</td>
+                    </tr>
+                    <tr>
+                        <td>Model Parameters</td>
+                        <td class="highlight">11.1M</td>
+                        <td>3.2M</td>
+                        <td>11.2M</td>
+                    </tr>
+                    <tr>
+                        <td>GFLOPs</td>
+                        <td class="highlight">28.6</td>
+                        <td>8.7</td>
+                        <td>28.6</td>
+                    </tr>
+                    <tr>
+                        <td>Research Publication</td>
+                        <td class="highlight">Springer LNEE 2025</td>
+                        <td>—</td>
+                        <td>—</td>
+                    </tr>
+                    <tr>
+                        <td>Inference (CPU)</td>
+                        <td class="highlight">269ms</td>
+                        <td>156ms</td>
+                        <td>406ms</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <!-- DEPLOYMENT SECTION -->
+    <section class="deployment-section section-spacing" id="deployment">
+        <div class="container">
+            <p class="section-label">Seamless Integration</p>
+            <h2 class="section-title">Built for Developers.<br>Ready for Production.</h2>
+
+            <div class="deployment-cards fade-on-scroll">
+                <div class="deployment-card">
+                    <div class="deployment-icon">
+                        <svg viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M9 17H7v-7h2V17zm4 0h-2V7h2V17zm4 0h-2v-4h2V17z"/>
+                        </svg>
+                    </div>
+                    <h3 class="deployment-title">Local</h3>
+                    <div class="deployment-command">python app.py</div>
+                    <p style="font-size: 13px; color: #8390AA; margin-top: 8px;">Access at localhost:5000</p>
+                </div>
+
+                <div class="deployment-card">
+                    <div class="deployment-icon">
+                        <svg viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
+                        </svg>
+                    </div>
+                    <h3 class="deployment-title">Cloud</h3>
+                    <div class="deployment-command">Render.com / Railway.app</div>
+                    <p style="font-size: 13px; color: #8390AA; margin-top: 8px;">One-click deploy with environment vars</p>
+                </div>
+
+                <div class="deployment-card">
+                    <div class="deployment-icon">
+                        <svg viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"/>
+                        </svg>
+                    </div>
+                    <h3 class="deployment-title">Docker</h3>
+                    <div class="deployment-command">docker run -p 5000:5000 fireguard:latest</div>
+                    <p style="font-size: 13px; color: #8390AA; margin-top: 8px;">Containerized for
+continuation of code (interrupted mid-deployment section):
+
+                    <p style="font-size: 13px; color: #8390AA; margin-top: 8px;">Containerized for scalability</p>
+                </div>
+            </div>
+
+            <div class="api-section fade-on-scroll">
+                <h3 class="api-title">REST API Endpoints</h3>
+
+                <div class="api-endpoint">
+                    <div class="api-method">POST</div>
+                    <div class="api-path">/detect</div>
+                    <div class="api-description">Upload an image for fire/smoke detection. Returns bounding boxes, confidence scores, and class labels.</div>
+                    <div class="code-block">
+                        <span class="code-line"><span class="code-keyword">curl</span> -X POST https://api.fireguard.ai/v1/detect \</span>
+                        <span class="code-line">  -H <span class="code-string">"Authorization: Bearer YOUR_API_KEY"</span> \</span>
+                        <span class="code-line">  -F <span class="code-string">"file=@fire_image.jpg"</span></span>
+                    </div>
+                </div>
+
+                <div class="api-endpoint">
+                    <div class="api-method">POST</div>
+                    <div class="api-path">/detect_frame</div>
+                    <div class="api-description">Process individual video frames for real-time detection. Optimized for streaming.</div>
+                    <div class="code-block">
+                        <span class="code-line"><span class="code-keyword">curl</span> -X POST https://api.fireguard.ai/v1/detect_frame \</span>
+                        <span class="code-line">  -H <span class="code-string">"Content-Type: application/json"</span> \</span>
+                        <span class="code-line">  -d <span class="code-string">'{"frame": "base64_encoded_image"}'</span></span>
+                    </div>
+                </div>
+
+                <div class="api-endpoint">
+                    <div class="api-method">POST</div>
+                    <div class="api-path">/process_video</div>
+                    <div class="api-description">Submit a video file for batch processing. Returns job ID for status tracking.</div>
+                    <div class="code-block">
+                        <span class="code-line"><span class="code-keyword">curl</span> -X POST https://api.fireguard.ai/v1/process_video \</span>
+                        <span class="code-line">  -F <span class="code-string">"file=@fire_video.mp4"</span> \</span>
+                        <span class="code-line">  -F <span class="code-string">"webhook_url=https://yourserver.com/callback"</span></span>
+                    </div>
+                </div>
+
+                <div class="api-endpoint">
+                    <div class="api-method">GET</div>
+                    <div class="api-path">/video_progress/:id</div>
+                    <div class="api-description">Check processing status of a submitted video job.</div>
+                </div>
+
+                <div class="api-endpoint">
+                    <div class="api-method">GET</div>
+                    <div class="api-path">/health</div>
+                    <div class="api-description">System status check. Returns uptime, model version, and API health.</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA SECTION -->
+    <section class="deployment-section section-spacing">
+        <div class="container" style="text-align: center;">
+            <p class="section-label" style="text-align: center;">Ready to Protect What Matters</p>
+            <h2 class="section-title">Early Detection.<br><span style="color: #E84020;">Smarter Response.</span><br>Safer World.</h2>
+            <p style="font-size: 18px; color: #8390AA; margin: 24px 0 40px; max-width: 600px; margin-left: auto; margin-right: auto;">Join organizations worldwide using FireGuard AI to prevent disasters and save lives.</p>
+            <button class="btn-primary" style="padding: 16px 40px; font-size: 16px;">Request Access</button>
+        </div>
+    </section>
+
+    <!-- FOOTER -->
+    <footer>
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-col">
+                    <h4>Product</h4>
+                    <ul>
+                        <li><a href="#features">Features</a></li>
+                        <li><a href="#technology">Technology</a></li>
+                        <li><a href="#performance">Benchmarks</a></li>
+                        <li><a href="#deployment">Deploy</a></li>
+                    </ul>
+                </div>
+                <div class="footer-col">
+                    <h4>Resources</h4>
+                    <ul>
+                        <li><a href="#">Documentation</a></li>
+                        <li><a href="#">API Reference</a></li>
+                        <li><a href="#">SDKs</a></li>
+                        <li><a href="#">Guides</a></li>
+                    </ul>
+                </div>
+                <div class="footer-col">
+                    <h4>Company</h4>
+                    <ul>
+                        <li><a href="#">About</a></li>
+                        <li><a href="#">Blog</a></li>
+                        <li><a href="#">News</a></li>
+                        <li><a href="#">Careers</a></li>
+                    </ul>
+                </div>
+                <div class="footer-col">
+                    <h4>Legal</h4>
+                    <ul>
+                        <li><a href="#">Privacy Policy</a></li>
+                        <li><a href="#">Terms of Service</a></li>
+                        <li><a href="#">Security</a></li>
+                        <li><a href="#">Compliance</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <div>&copy; 2025 FireGuard AI. All rights reserved. Built with precision.</div>
+                <div class="social-links">
+                    <a href="#" title="Twitter">X</a>
+                    <a href="#" title="LinkedIn">in</a>
+                    <a href="#" title="GitHub">GH</a>
+                    <a href="#" title="Email">Mail</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- JAVASCRIPT -->
+    <script>
+        // ===== HEADER SCROLL EFFECT =====
+        window.addEventListener('scroll', () => {
+            const header = document.querySelector('header');
+            if (window.scrollY > 50) {
+                header.classList.add('scrolled');
+            } else {
+                header.classList.remove('scrolled');
+            }
+        });
+
+        // ===== SCROLL ANIMATIONS =====
+        const observerOptions = {
+            threshold: 0.1,
+            rootMargin: '0px 0px -100px 0px'
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                    observer.unobserve(entry.target);
+                }
+            });
+        }, observerOptions);
+
+        document.querySelectorAll('.fade-on-scroll').forEach(el => observer.observe(el));
+
+        // ===== 3D HERO CANVAS =====
+        const heroCanvas = document.getElementById('heroCanvas');
+        const heroCtx = heroCanvas.getContext('2d');
+
+        function resizeCanvas() {
+            heroCanvas.width = window.innerWidth;
+            heroCanvas.height = window.innerHeight;
+        }
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
+        class Particle {
+            constructor(x, y, vx, vy, color) {
+                this.x = x;
+                this.y = y;
+                this.vx = vx;
+                this.vy = vy;
+                this.color = color;
+                this.alpha = 1;
+                this.life = Math.random() * 60 + 40;
+                this.maxLife = this.life;
+            }
+
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+                this.vy += 0.15; // gravity
+                this.life--;
+                this.alpha = this.life / this.maxLife;
+            }
+
+            draw(ctx) {
+                ctx.globalAlpha = this.alpha;
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, Math.random() * 3 + 1, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.globalAlpha = 1;
+            }
+        }
+
+        let particles = [];
+
+        function createFireParticles(x, y) {
+            for (let i = 0; i < 8; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const speed = Math.random() * 4 + 2;
+                const vx = Math.cos(angle) * speed;
+                const vy = Math.sin(angle) * speed - 3;
+                const colors = ['#E84020', '#F07220', '#F5A623'];
+                const color = colors[Math.floor(Math.random() * colors.length)];
+                particles.push(new Particle(x, y, vx, vy, color));
+            }
+        }
+
+        // Random fire particles
+        setInterval(() => {
+            createFireParticles(Math.random() * heroCanvas.width, heroCanvas.height / 2);
+        }, 300);
+
+        function animateHeroCanvas() {
+            heroCtx.clearRect(0, 0, heroCanvas.width, heroCanvas.height);
+
+            // Background gradient mesh
+            const gradient = heroCtx.createLinearGradient(0, 0, heroCanvas.width, heroCanvas.height);
+            gradient.addColorStop(0, 'rgba(7, 8, 16, 0)');
+            gradient.addColorStop(0.5, 'rgba(13, 16, 34, 0.3)');
+            gradient.addColorStop(1, 'rgba(232, 80, 32, 0.1)');
+            heroCtx.fillStyle = gradient;
+            heroCtx.fillRect(0, 0, heroCanvas.width, heroCanvas.height);
+
+            // Grid lines
+            heroCtx.strokeStyle = 'rgba(232, 80, 32, 0.05)';
+            heroCtx.lineWidth = 1;
+            for (let i = 0; i < heroCanvas.width; i += 60) {
+                heroCtx.beginPath();
+                heroCtx.moveTo(i, 0);
+                heroCtx.lineTo(i, heroCanvas.height);
+                heroCtx.stroke();
+            }
+            for (let i = 0; i < heroCanvas.height; i += 60) {
+                heroCtx.beginPath();
+                heroCtx.moveTo(0, i);
+                heroCtx.lineTo(heroCanvas.width, i);
+                heroCtx.stroke();
+            }
+
+            // Draw and update particles
+            particles.forEach((p, idx) => {
+                p.update();
+                p.draw(heroCtx);
+                if (p.life <= 0) particles.splice(idx, 1);
+            });
+
+            requestAnimationFrame(animateHeroCanvas);
+        }
+        animateHeroCanvas();
+
+        // ===== DEMO CANVAS (3D DETECTION BOX) =====
+        const demoCanvas = document.getElementById('demoCanvas');
+        const demoCtx = demoCanvas.getContext('2d');
+        demoCanvas.width = demoCanvas.offsetWidth;
+        demoCanvas.height = demoCanvas.offsetHeight;
+
+        let rotationX = 0;
+        let rotationY = 0;
+
+        function draw3DBox() {
+            demoCtx.clearRect(0, 0, demoCanvas.width, demoCanvas.height);
+
+            // Background
+            const bgGradient = demoCtx.createRadialGradient(demoCanvas.width / 2, demoCanvas.height / 2, 0, demoCanvas.width / 2, demoCanvas.height / 2, demoCanvas.width);
+            bgGradient.addColorStop(0, 'rgba(13, 16, 34, 0.8)');
+            bgGradient.addColorStop(1, 'rgba(7, 8, 16, 0.95)');
+            demoCtx.fillStyle = bgGradient;
+            demoCtx.fillRect(0, 0, demoCanvas.width, demoCanvas.height);
+
+            // Draw 3D box
+            const centerX = demoCanvas.width / 2;
+            const centerY = demoCanvas.height / 2;
+            const size = 80;
+
+            // Simplified 3D projection
+            const cos = Math.cos(rotationY);
+            const sin = Math.sin(rotationY);
+
+            demoCtx.strokeStyle = '#E84020';
+            demoCtx.lineWidth = 3;
+            demoCtx.globalAlpha = 0.8;
+
+            // Draw box outline
+            demoCtx.beginPath();
+            demoCtx.rect(centerX - size, centerY - size, size * 2, size * 2);
+            demoCtx.stroke();
+
+            // Draw inner box for depth
+            const innerSize = size * 0.6;
+            demoCtx.globalAlpha = 0.4;
+            demoCtx.beginPath();
+            demoCtx.rect(centerX - innerSize, centerY - innerSize, innerSize * 2, innerSize * 2);
+            demoCtx.stroke();
+            demoCtx.globalAlpha = 1;
+
+            // Draw diagonal lines
+            demoCtx.globalAlpha = 0.3;
+            demoCtx.beginPath();
+            demoCtx.moveTo(centerX - size, centerY - size);
+            demoCtx.lineTo(centerX + size, centerY + size);
+            demoCtx.moveTo(centerX + size, centerY - size);
+            demoCtx.lineTo(centerX - size, centerY + size);
+            demoCtx.stroke();
+            demoCtx.globalAlpha = 1;
+
+            // Pulsing fire effect
+            const pulseSize = size * (0.8 + Math.sin(Date.now() / 500) * 0.2);
+            demoCtx.globalAlpha = 0.2;
+            demoCtx.fillStyle = '#E84020';
+            demoCtx.fillRect(centerX - pulseSize, centerY - pulseSize, pulseSize * 2, pulseSize * 2);
+            demoCtx.globalAlpha = 1;
+
+            // Text
+            demoCtx.fillStyle = '#E8ECF8';
+            demoCtx.font = 'bold 16px Inter, sans-serif';
+            demoCtx.textAlign = 'center';
+            demoCtx.textBaseline = 'middle';
+            demoCtx.fillText('Fire Detected', centerX, centerY + size + 40);
+            demoCtx.font = '12px Inter, sans-serif';
+            demoCtx.fillStyle = '#F5A623';
+            demoCtx.fillText('Confidence: 94.2%', centerX, centerY + size + 60);
+
+            rotationY += 0.01;
+            requestAnimationFrame(draw3DBox);
+        }
+        draw3DBox();
+
+        // ===== DEMO TAB SWITCHING =====
+        document.querySelectorAll('.demo-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                const tabName = tab.dataset.tab;
+                document.querySelectorAll('.demo-tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.demo-content').forEach(c => c.classList.remove('active'));
+                tab.classList.add('active');
+                document.querySelector(`[data-content="${tabName}"]`).classList.add('active');
+            });
+        });
+
+        // ===== IMAGE UPLOAD =====
+        const uploadZone = document.getElementById('uploadZone');
+        const imageInput = document.getElementById('imageInput');
+        const browseBtn = uploadZone ? uploadZone.querySelector('.btn-browse') : null;
+
+        if (browseBtn && imageInput) {
+            browseBtn.addEventListener('click', () => imageInput.click());
+            uploadZone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                uploadZone.style.borderColor = '#E84020';
+                uploadZone.style.background = 'rgba(232, 80, 32, 0.1)';
+            });
+            uploadZone.addEventListener('dragleave', () => {
+                uploadZone.style.borderColor = 'rgba(232, 80, 32, 0.3)';
+                uploadZone.style.background = 'rgba(13, 16, 34, 0.5)';
+            });
+            uploadZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                uploadZone.style.borderColor = 'rgba(232, 80, 32, 0.3)';
+                uploadZone.style.background = 'rgba(13, 16, 34, 0.5)';
+                const file = e.dataTransfer.files[0];
+                if (file) {
+                    const dt = new DataTransfer();
+                    dt.items.add(file);
+                    imageInput.files = dt.files;
+                    imageInput.dispatchEvent(new Event('change'));
+                }
+            });
+
+            imageInput.addEventListener('change', async (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                const formData = new FormData();
+                formData.append('image', file);
+
+                try {
+                    uploadZone.style.display = 'none';
+                    document.getElementById('detectionResult').style.display = 'block';
+
+                    const response = await fetch('http://localhost:5000/detect', {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    if (!response.ok) throw new Error('API error');
+                    const data = await response.json();
+
+                    // Render annotated base64 image
+                    const detectionImg = document.getElementById('detectionImg');
+                    if (detectionImg && data.annotated_image) {
+                        detectionImg.src = 'data:image/jpeg;base64,' + data.annotated_image;
+                    }
+
+                    // Update metrics
+                    if (data.metrics) {
+                        const m = data.metrics;
+                        const metricCards = document.querySelectorAll('#metricsGrid .metric-card');
+                        if (metricCards.length >= 8) {
+                            metricCards[0].querySelector('.metric-value').textContent = (m.precision_est * 100).toFixed(0) + '%';
+                            metricCards[1].querySelector('.metric-value').textContent = (m.recall_est * 100).toFixed(0) + '%';
+                            metricCards[2].querySelector('.metric-value').textContent = (m.f1_est * 100).toFixed(0) + '%';
+                            metricCards[3].querySelector('.metric-value').textContent = (m.mAP50_est * 100).toFixed(0) + '%';
+                            metricCards[4].querySelector('.metric-value').textContent = (m.top_confidence * 100).toFixed(1) + '%';
+                            metricCards[5].querySelector('.metric-value').textContent = m.inference_ms.toFixed(0) + ' ms';
+                            metricCards[6].querySelector('.metric-value').textContent = m.fps.toFixed(1);
+                            metricCards[7].querySelector('.metric-value').textContent = m.total_detections;
+                        }
+                    }
+
+                    // Render detection list
+                    const detectionList = document.getElementById('detectionList');
+                    if (detectionList) {
+                        detectionList.innerHTML = '';
+                        if (data.detections && data.detections.length > 0) {
+                            data.detections.forEach(det => {
+                                const item = document.createElement('div');
+                                item.className = 'detection-item';
+                                const isFire = det.label.toLowerCase() === 'fire';
+                                item.innerHTML = `
+                                    <div class="detection-class">
+                                        <div class="detection-class-icon">${isFire ? '<svg style="width:16px;height:16px;stroke:#E84020;fill:none;stroke-width:2;display:inline-block;vertical-align:middle;" viewBox="0 0 24 24"><path d="M12 2C10 6 6 8 6 13a6 6 0 0 0 12 0c0-3-2-5-3-7-1 2-1.5 3-1.5 5a2.5 2.5 0 0 1-5 0c0-3 3.5-5 3.5-9z"/></svg>' : '<svg style="width:16px;height:16px;stroke:#4A90E2;fill:none;stroke-width:2;display:inline-block;vertical-align:middle;" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/></svg>'}</div>
+                                        <span>${det.label.toUpperCase()} #${det.id} — Box (${det.bbox.x1}, ${det.bbox.y1}) to (${det.bbox.x2}, ${det.bbox.y2})</span>
+                                    </div>
+                                    <div class="detection-confidence">${det.confidence_pct}</div>
+                                `;
+                                detectionList.appendChild(item);
+                            });
+                        }
+                    }
+                } catch (error) {
+                    console.error('Detection error:', error);
+                    alert('API unavailable. Ensure backend is running at http://localhost:5000');
+                    uploadZone.style.display = 'block';
+                    document.getElementById('detectionResult').style.display = 'none';
+                }
+            });
+        }
+
+        // ===== RESET BUTTON HANDLERS =====
+        const resetImageBtn = document.getElementById('resetImageBtn');
+        if (resetImageBtn && uploadZone && imageInput) {
+            resetImageBtn.addEventListener('click', () => {
+                document.getElementById('detectionResult').style.display = 'none';
+                uploadZone.style.display = 'block';
+                imageInput.value = '';
+            });
+        }
+
+        const resetVideoBtn = document.getElementById('resetVideoBtn');
+        if (resetVideoBtn && videoUploadZone && videoInput) {
+            resetVideoBtn.addEventListener('click', () => {
+                document.getElementById('videoResultContainer').style.display = 'none';
+                videoUploadZone.style.display = 'block';
+                videoInput.value = '';
+            });
+        }
+
+        // ===== VIDEO UPLOAD & PROCESSING =====
+        const videoUploadZone = document.getElementById('videoUploadZone');
+        const videoInput = document.getElementById('videoInput');
+        if (videoUploadZone && videoInput) {
+            const vBrowseBtn = videoUploadZone.querySelector('.btn-browse');
+            if (vBrowseBtn) vBrowseBtn.addEventListener('click', () => videoInput.click());
+
+            videoInput.addEventListener('change', async (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                videoUploadZone.style.display = 'none';
+                const progContainer = document.getElementById('videoProgressContainer');
+                const resultContainer = document.getElementById('videoResultContainer');
+                progContainer.style.display = 'block';
+                resultContainer.style.display = 'none';
+
+                const formData = new FormData();
+                formData.append('video', file);
+
+                try {
+                    const resp = await fetch('http://localhost:5000/process_video', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    const d = await resp.json();
+                    if (d.error) throw new Error(d.error);
+
+                    const jobId = d.job_id;
+                    const poller = setInterval(async () => {
+                        try {
+                            const pResp = await fetch('http://localhost:5000/video_progress/' + jobId);
+                            const pData = await pResp.json();
+                            const pct = pData.progress || 0;
+                            document.getElementById('videoPct').textContent = pct + '%';
+                            document.getElementById('videoBarFill').style.width = pct + '%';
+
+                            if (pData.done) {
+                                clearInterval(poller);
+                                const rResp = await fetch('http://localhost:5000/video_result/' + jobId);
+                                const rData = await rResp.json();
+                                if (rData.video_b64) {
+                                    progContainer.style.display = 'none';
+                                    resultContainer.style.display = 'block';
+                                    const player = document.getElementById('videoResultPlayer');
+                                    player.src = 'data:video/mp4;base64,' + rData.video_b64;
+                                    player.load();
+                                }
+                            }
+                        } catch (err) {
+                            clearInterval(poller);
+                            alert('Video progress check failed.');
+                            videoUploadZone.style.display = 'block';
+                            progContainer.style.display = 'none';
+                        }
+                    }, 1200);
+                } catch (err) {
+                    alert('Video processing failed: ' + err.message);
+                    videoUploadZone.style.display = 'block';
+                    progContainer.style.display = 'none';
+                }
+            });
+        }
+
+        // ===== CAMERA STREAM =====
+        const cameraCanvas = document.getElementById('cameraCanvas');
+        const startCameraBtn = document.getElementById('startCameraBtn');
+        const stopCameraBtn = document.getElementById('stopCameraBtn');
+        const cameraStatus = document.getElementById('cameraStatus');
+        let mediaStream = null;
+        let cameraActive = false;
+        let cameraTimer = null;
+        let cameraFrameCount = 0;
+
+        if (startCameraBtn && stopCameraBtn && cameraCanvas) {
+            startCameraBtn.addEventListener('click', async () => {
+                try {
+                    mediaStream = await navigator.mediaDevices.getUserMedia({ video: { width: { ideal: 1280 }, height: { ideal: 720 } } });
+                    const video = document.createElement('video');
+                    video.srcObject = mediaStream;
+                    await video.play();
+
+                    cameraActive = true;
+                    startCameraBtn.style.display = 'none';
+                    stopCameraBtn.style.display = 'inline-block';
+                    if (cameraStatus) cameraStatus.textContent = 'STREAMING';
+
+                    const ctx = cameraCanvas.getContext('2d');
+                    cameraCanvas.width = video.videoWidth || 640;
+                    cameraCanvas.height = video.videoHeight || 480;
+
+                    let pending = false;
+                    cameraTimer = setInterval(() => {
+                        if (!cameraActive || pending) return;
+                        const tmp = document.createElement('canvas');
+                        tmp.width = video.videoWidth || 640;
+                        tmp.height = video.videoHeight || 480;
+                        tmp.getContext('2d').drawImage(video, 0, 0);
+
+                        tmp.toBlob(async (blob) => {
+                            if (!blob) return;
+                            pending = true;
+                            const t0 = performance.now();
+                            try {
+                                const resp = await fetch('http://localhost:5000/detect_frame', {
+                                    method: 'POST',
+                                    body: blob,
+                                    headers: { 'Content-Type': 'image/jpeg' }
+                                });
+                                const data = await resp.json();
+                                const elapsed = performance.now() - t0;
+                                const fps = 1000 / Math.max(elapsed, 1);
+
+                                if (data.annotated_frame) {
+                                    const img = new Image();
+                                    img.onload = () => {
+                                        ctx.drawImage(img, 0, 0, cameraCanvas.width, cameraCanvas.height);
+                                    };
+                                    img.src = 'data:image/jpeg;base64,' + data.annotated_frame;
+                                }
+
+                                cameraFrameCount++;
+                                const cameraMetrics = document.getElementById('cameraMetrics');
+                                if (cameraMetrics) {
+                                    const vals = cameraMetrics.querySelectorAll('.metric-value');
+                                    if (vals.length >= 4) {
+                                        vals[0].textContent = fps.toFixed(1);
+                                        vals[1].textContent = data.detections || 0;
+                                        vals[2].textContent = data.top_confidence ? (data.top_confidence * 100).toFixed(1) + '%' : '0%';
+                                        vals[3].textContent = cameraFrameCount;
+                                    }
+                                }
+                            } catch (_) {}
+                            pending = false;
+                        }, 'image/jpeg', 0.75);
+                    }, 150);
+                } catch (error) {
+                    console.error('Camera error:', error);
+                    alert('Camera access denied or unavailable: ' + error.message);
+                }
+            });
+
+            stopCameraBtn.addEventListener('click', () => {
+                if (mediaStream) {
+                    mediaStream.getTracks().forEach(track => track.stop());
+                    mediaStream = null;
+                }
+                cameraActive = false;
+                clearInterval(cameraTimer);
+                startCameraBtn.style.display = 'inline-block';
+                stopCameraBtn.style.display = 'none';
+                if (cameraStatus) cameraStatus.textContent = 'STOPPED';
+                const ctx = cameraCanvas.getContext('2d');
+                ctx.clearRect(0, 0, cameraCanvas.width, cameraCanvas.height);
+            });
+        }
+
+        // ===== COPY TO CLIPBOARD =====
+        document.querySelectorAll('.copy-button').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const command = e.target.previousElementSibling.textContent;
+                navigator.clipboard.writeText(command).then(() => {
+                    const origText = btn.textContent;
+                    btn.textContent = 'Copied!';
+                    setTimeout(() => btn.textContent = origText, 2000);
+                });
+            });
+        });
+
+        // ===== NUMBER COUNT-UP ANIMATION =====
+        const countUpObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const element = entry.target;
+                    const finalValue = parseFloat(element.getAttribute('data-value')) || parseInt(element.textContent);
+                    let currentValue = 0;
+                    const increment = finalValue / 60;
+
+                    const counter = setInterval(() => {
+                        currentValue += increment;
+                        if (currentValue >= finalValue) {
+                            element.textContent = finalValue;
+                            clearInterval(counter);
+                            countUpObserver.unobserve(element);
+                        } else {
+                            element.textContent = currentValue.toFixed(0);
+                        }
+                    }, 16);
+                }
+            });
+        }, { threshold: 0.5 });
+
+        document.querySelectorAll('.kpi-number').forEach(el => countUpObserver.observe(el));
+    </script>
+</body>
+</html>

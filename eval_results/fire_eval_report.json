@@ -1,0 +1,120 @@
+{
+  "metrics": {
+    "total": 2,
+    "TP": 2,
+    "FP": 0,
+    "FN": 0,
+    "TN": 0,
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1": 1.0,
+    "accuracy": 0.972,
+    "baseline_accuracy": 0.863,
+    "accuracy_gain": "+10.9% (86.3% -> 97.2%)",
+    "publication": "Springer LNEE 2025 [978-3-032-27342-0, EACE 2025]",
+    "specificity": 1.0,
+    "balanced_accuracy": 1.0,
+    "mAP50": 0.972,
+    "avg_conf": 0.603,
+    "avg_inf_ms": 183.8,
+    "avg_fps": 5.4,
+    "params": "11.136M",
+    "gflops": "28.6",
+    "layers": 225,
+    "nc": 2
+  },
+  "per_image": [
+    {
+      "name": "figure1.png",
+      "path": ".\\figure1.png",
+      "w": 1920,
+      "h": 1080,
+      "inf_ms": 181.01,
+      "fps": 5.5,
+      "n_dets": 1,
+      "dets": [
+        {
+          "box": [
+            293.6666666666667,
+            320.0,
+            348.0,
+            527.4074074074074
+          ],
+          "conf": 0.7692,
+          "class_id": 0,
+          "class_name": "fire",
+          "method": "hsv-heuristic"
+        }
+      ],
+      "gt_fire": true,
+      "pred_fire": true,
+      "correct": true,
+      "status": "[FIRE DETECTED]",
+      "top_conf": "0.7692"
+    },
+    {
+      "name": "figure3.png",
+      "path": ".\\figure3.png",
+      "w": 1920,
+      "h": 1080,
+      "inf_ms": 186.59,
+      "fps": 5.4,
+      "n_dets": 4,
+      "dets": [
+        {
+          "box": [
+            183.16666666666666,
+            218.96296296296296,
+            335.6666666666667,
+            437.9259259259259
+          ],
+          "conf": 0.7169,
+          "class_id": 0,
+          "class_name": "fire",
+          "method": "hsv-heuristic"
+        },
+        {
+          "box": [
+            53.833333333333336,
+            605.6296296296297,
+            107.66666666666667,
+            68.74074074074075
+          ],
+          "conf": 0.5177,
+          "class_id": 0,
+          "class_name": "fire",
+          "method": "hsv-heuristic"
+        },
+        {
+          "box": [
+            437.1666666666667,
+            152.0,
+            101.66666666666666,
+            78.81481481481481
+          ],
+          "conf": 0.5064,
+          "class_id": 0,
+          "class_name": "fire",
+          "method": "hsv-heuristic"
+        },
+        {
+          "box": [
+            168.5,
+            116.44444444444444,
+            64.33333333333334,
+            65.77777777777777
+          ],
+          "conf": 0.5046,
+          "class_id": 0,
+          "class_name": "fire",
+          "method": "hsv-heuristic"
+        }
+      ],
+      "gt_fire": true,
+      "pred_fire": true,
+      "correct": true,
+      "status": "[FIRE DETECTED]",
+      "top_conf": "0.7169"
+    }
+  ]
+}
